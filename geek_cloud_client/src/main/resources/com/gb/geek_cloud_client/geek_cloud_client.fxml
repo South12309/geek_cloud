@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.gb.geek_cloud_client.CloudMainController">
+   <children>
+      <ListView fx:id="clientView" layoutX="10.0" layoutY="33.0" prefHeight="350.0" prefWidth="219.0" />
+      <ListView fx:id="serverView" layoutX="333.0" layoutY="33.0" prefHeight="350.0" prefWidth="245.0" />
+      <Button onAction="#sendToServer" layoutX="255.0" layoutY="60.0" mnemonicParsing="false" text="&gt;" />
+      <Button layoutX="261.0" layoutY="188.0" mnemonicParsing="false" text="&lt;" />
+   </children>
+</AnchorPane>
