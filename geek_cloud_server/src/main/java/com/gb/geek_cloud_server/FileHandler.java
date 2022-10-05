@@ -12,6 +12,7 @@ public class FileHandler implements Runnable {
     private final DataOutputStream dos;
     private static final String SEND_FILE_COMMAND = "file";
     private static final String SEND_FILELIST_COMMAND = "filelist";
+    private static final String GET_FILE_COMMAND = "getfile";
     private static final Integer BATCH_SIZE = 256;
     private byte[] batch;
     private static final String SERVER_DIR = "server_files";
@@ -50,8 +51,27 @@ public class FileHandler implements Runnable {
     public void run() {
         try {
             while (true) {
-                System.out.println(currentDirectoryServer);
                 String command = dis.readUTF();
+                if (command.equals(GET_FILE_COMMAND)) {
+                    String fileName = dis.readUTF();
+                    String filePath = currentDirectoryServer + "/" + fileName;
+                    File file = new File(filePath);
+                    if (file.isFile()) {
+                        try {
+                            long size = file.length();
+                            dos.writeLong(size);
+                            try (FileInputStream fis = new FileInputStream(file)) {
+                                byte[] bytes = fis.readAllBytes();
+                                dos.write(bytes);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        } catch (IOException e) {
+                            System.err.println("e= " + e.getMessage());
+                        }
+
+                    }
+                }
                 if (command.equals(SEND_FILE_COMMAND)) {
                     String fileName = dis.readUTF();
                     long size = dis.readLong();
