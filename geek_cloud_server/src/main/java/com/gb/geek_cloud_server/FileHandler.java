@@ -65,7 +65,7 @@ public class FileHandler implements Runnable {
                 }
                 if (command.equals(SEND_FILELIST_COMMAND)) {
                     String directory = dis.readUTF();
-                    File dir = new File(currentDirectoryServer + directory);
+                    File dir = new File(currentDirectoryServer+directory);
 
                     System.out.println(dir.getCanonicalPath());
                     if (dir.isDirectory()) {
@@ -77,10 +77,10 @@ public class FileHandler implements Runnable {
                     for (int i = 0; i < filesCount; i++) {
                         dos.writeUTF(files.get(i));
                     }
-                    File serverDir = new File(SERVER_DIR);
-                    String canonicalPathOfServerDir = serverDir.getCanonicalPath();
-                    String relativePath = getRelativePath(currentDirectoryServer, canonicalPathOfServerDir);
-                    dos.writeUTF(relativePath);
+                //    File serverDir = new File(SERVER_DIR);
+               //     String canonicalPathOfServerDir = serverDir.getCanonicalPath();
+               //     String relativePath = getRelativePath(currentDirectoryServer, canonicalPathOfServerDir);
+               //     dos.writeUTF(relativePath);
                 } else {
                     System.out.println("Unknown command received" + command);
                 }

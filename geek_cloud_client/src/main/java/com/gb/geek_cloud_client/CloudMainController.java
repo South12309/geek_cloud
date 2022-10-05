@@ -23,7 +23,7 @@ public class CloudMainController implements Initializable {
     private static final String SEND_FILELIST_COMMAND = "filelist";
 
     private String currentDirectory;
-    private String currentDirectoryServer;
+  //  private String currentDirectoryServer;
 
     public void sendToServer(ActionEvent actionEvent) {
         String fileName = clientView.getSelectionModel().getSelectedItem();
@@ -56,7 +56,7 @@ public class CloudMainController implements Initializable {
             for (int i = 0; i < countFiles; i++) {
                 files.add(dis.readUTF());
             }
-            this.currentDirectoryServer = dis.readUTF();
+     //       this.currentDirectoryServer = dis.readUTF();
             return files;
 
         } catch (IOException e) {
@@ -83,7 +83,7 @@ public class CloudMainController implements Initializable {
         setCurrentDirectory(System.getProperty("user.home"));
         setCurrentDirectoryServer("");
         clientView.setOnMouseClicked(event -> onMouseClickOnView(event, clientView, currentDirectory, true));
-        serverView.setOnMouseClicked(event -> onMouseClickOnView(event, serverView, currentDirectoryServer, false));
+        serverView.setOnMouseClicked(event -> onMouseClickOnView(event, serverView, "", false));
     }
 
     private void onMouseClickOnView(MouseEvent event, ListView<String> view, String directory, boolean isClient) {
@@ -110,8 +110,8 @@ public class CloudMainController implements Initializable {
     }
 
     private void setCurrentDirectoryServer(String directory) {
-        currentDirectoryServer = directory;
-        fillView(serverView, getFilesFromServer(currentDirectoryServer));
+//        currentDirectoryServer = directory;
+        fillView(serverView, getFilesFromServer(directory));
 
     }
 
