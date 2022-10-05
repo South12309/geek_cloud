@@ -3,6 +3,7 @@ package com.gb.geek_cloud_client;
 import javafx.event.ActionEvent;
 import javafx.fxml.Initializable;
 import javafx.scene.control.ListView;
+import javafx.scene.input.MouseEvent;
 
 import java.io.*;
 import java.net.Socket;
@@ -18,13 +19,18 @@ public class CloudMainController implements Initializable {
     private DataInputStream dis;
     private DataOutputStream dos;
     private Socket socket;
-    private static final String SEND_FILE_COMMAND="file";
+    private static final String SEND_FILE_COMMAND = "file";
+    private static final String GET_FILE_COMMAND = "getfile";
+    private static final String GET_FILELIST_COMMAND = "filelist";
+    private static final Integer BATCH_SIZE = 256;
+    private byte[] batch;
 
     private String currentDirectory;
+    //  private String currentDirectoryServer;
 
     public void sendToServer(ActionEvent actionEvent) {
         String fileName = clientView.getSelectionModel().getSelectedItem();
-        String filePath = currentDirectory+"/"+fileName;
+        String filePath = currentDirectory + "/" + fileName;
         File file = new File(filePath);
         if (file.isFile()) {
             try {
@@ -38,11 +44,53 @@ public class CloudMainController implements Initializable {
                     throw new RuntimeException(e);
                 }
             } catch (IOException e) {
-                System.err.println("e= "+e.getMessage());
+                System.err.println("e= " + e.getMessage());
             }
 
         }
     }
+
+    public void getFromServer(ActionEvent actionEvent) {
+        String fileName = serverView.getSelectionModel().getSelectedItem();
+        String filePath = currentDirectory + "/" + fileName;
+        File file = new File(filePath);
+        try {
+            dos.writeUTF(GET_FILE_COMMAND);
+            dos.writeUTF(fileName);
+            long size = dis.readLong();
+            try (FileOutputStream fos = new FileOutputStream(file)) {
+                for (int i = 0; i < (size + BATCH_SIZE - 1) / BATCH_SIZE; i++) {
+                    int read = dis.read(batch);
+                    fos.write(batch, 0, read);
+                }
+            } catch (IOException ignored) {
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        fillView(clientView, getFiles(currentDirectory));
+
+    }
+
+    private List<String> getFilesFromServer(String currentDirectoryServer) {
+        List<String> files = new ArrayList<>();
+        try {
+            dos.writeUTF(GET_FILELIST_COMMAND);
+            dos.writeUTF(currentDirectoryServer);
+            int countFiles = dis.readInt();
+            for (int i = 0; i < countFiles; i++) {
+                files.add(dis.readUTF());
+            }
+            //       this.currentDirectoryServer = dis.readUTF();
+            return files;
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return List.of();
+    }
+
 
     private void initNetwork() {
         try {
@@ -57,22 +105,42 @@ public class CloudMainController implements Initializable {
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         initNetwork();
+        batch = new byte[BATCH_SIZE];
         setCurrentDirectory(System.getProperty("user.home"));
-        clientView.setOnMouseClicked(event -> {
-            if (event.getClickCount() == 2) {
-                String selected = clientView.getSelectionModel().getSelectedItem();
-                File selectedFile = new File(currentDirectory + "/" + selected);
-                if (selectedFile.isDirectory()) {
-                    setCurrentDirectory(currentDirectory + "/" + selected);
-                }
-            }
-        });
+        setCurrentDirectoryOnServer("");
+        clientView.setOnMouseClicked(event -> onMouseClickOnView(event, clientView, currentDirectory, true));
+        serverView.setOnMouseClicked(event -> onMouseClickOnView(event, serverView, "", false));
+    }
+
+    private void onMouseClickOnView(MouseEvent event, ListView<String> view, String directory, boolean isClient) {
+        if (event.getClickCount() == 2) {
+            String selected = view.getSelectionModel().getSelectedItem();
+            setDirectory(directory + "/" + selected, isClient);
+        }
+    }
+
+    private void setDirectory(String directory, boolean isClient) {
+        if (isClient) {
+            setCurrentDirectory(directory);
+        } else {
+            setCurrentDirectoryOnServer(directory);
+        }
     }
 
     private void setCurrentDirectory(String directory) {
-        currentDirectory = directory;
-        fillView(clientView, getFiles(currentDirectory));
+        File selectedFile = new File(directory);
+        if (selectedFile.isDirectory()) {
+            currentDirectory = directory;
+            fillView(clientView, getFiles(currentDirectory));
+        }
     }
+
+    private void setCurrentDirectoryOnServer(String directory) {
+//        currentDirectoryServer = directory;
+        fillView(serverView, getFilesFromServer(directory));
+
+    }
+
 
     private void fillView(ListView<String> view, List<String> data) {
         view.getItems().clear();
@@ -92,4 +160,6 @@ public class CloudMainController implements Initializable {
         return List.of();
 
     }
+
+
 }
