@@ -1,16 +1,15 @@
 package com.gb.geek_cloud_client;
 
-import com.gb.DaemonThreadFactory;
-import com.gb.model.CloudMessage;
-import com.gb.model.FileMessage;
-import com.gb.model.FileRequest;
-import com.gb.model.ListMessage;
+import com.gb.common_source.DaemonThreadFactory;
+import com.gb.common_source.model.*;
 import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
 import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.Initializable;
 import javafx.scene.control.ListView;
+import javafx.scene.input.MouseEvent;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,6 +22,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.ResourceBundle;
 
+
+@Slf4j
 public class CloudMainController implements Initializable {
     public ListView<String> clientView;
     public ListView<String> serverView;
@@ -84,22 +85,55 @@ public class CloudMainController implements Initializable {
         initNetwork();
         setCurrentDirectory(System.getProperty("user.home"));
         fillView(clientView, getFiles(currentDirectory));
-        clientView.setOnMouseClicked(event -> {
-            if (event.getClickCount() == 2) {
-                String selected = clientView.getSelectionModel().getSelectedItem();
-                File selectedFile = new File(currentDirectory + "/" + selected);
-                if (selectedFile.isDirectory()) {
-                    setCurrentDirectory(currentDirectory + "/" + selected);
-                }
-            }
-        });
+        clientView.setOnMouseClicked(event -> onMouseClickOnView(event, clientView, currentDirectory, true));
+        serverView.setOnMouseClicked(event -> onMouseClickOnView(event, serverView, "", false));
+    }
+
+    private void onMouseClickOnView(MouseEvent event, ListView<String> view, String directory, boolean isClient) {
+        if (event.getClickCount() == 2) {
+            String selected = view.getSelectionModel().getSelectedItem();
+            String delimiter = (directory.equals(""))?"":"/";
+            setDirectory(directory +  delimiter + selected, isClient);
+        }
+    }
+
+    private void setDirectory(String directory, boolean isClient) {
+        if (isClient) {
+            setCurrentDirectory(directory);
+        } else {
+            setCurrentDirectoryOnServer(directory);
+        }
     }
 
     private void setCurrentDirectory(String directory) {
-        currentDirectory = directory;
-        fillView(clientView, getFiles(currentDirectory));
+        File selectedFile = new File(directory);
+        if (selectedFile.isDirectory()) {
+            currentDirectory = directory;
+            fillView(clientView, getFiles(currentDirectory));
+        }
     }
 
+    private void setCurrentDirectoryOnServer(String directory) {
+        try {
+            network.getOutputStream().writeObject(new DirRequest(directory));
+            log.debug(directory + " запрошен");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+//        try {
+//            fillView(serverView, getFilesFromServer(directory));
+//        } catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
+
+    }
+
+//    private List<String> getFilesFromServer(String currentDirectoryServer) throws IOException {
+//
+//        network.getOutputStream().writeObject(new DirRequest(currentDirectoryServer));
+//        network.getInputStream().readObject()
+//
+//    }
     private void fillView(ListView<String> view, List<String> data) {
         view.getItems().clear();
         view.getItems().addAll(data);
