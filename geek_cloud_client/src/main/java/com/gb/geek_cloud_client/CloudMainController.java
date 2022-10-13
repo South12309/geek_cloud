@@ -120,20 +120,8 @@ public class CloudMainController implements Initializable {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-//        try {
-//            fillView(serverView, getFilesFromServer(directory));
-//        } catch (IOException e) {
-//            throw new RuntimeException(e);
-//        }
-
     }
 
-//    private List<String> getFilesFromServer(String currentDirectoryServer) throws IOException {
-//
-//        network.getOutputStream().writeObject(new DirRequest(currentDirectoryServer));
-//        network.getInputStream().readObject()
-//
-//    }
     private void fillView(ListView<String> view, List<String> data) {
         view.getItems().clear();
         view.getItems().addAll(data);

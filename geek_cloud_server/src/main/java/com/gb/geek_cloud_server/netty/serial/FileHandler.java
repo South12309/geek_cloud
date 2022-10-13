@@ -32,7 +32,6 @@ public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
             }
         } else if (cloudMessage instanceof DirRequest dirRequest) {
             Path dir = serverDir.resolve(dirRequest.getDirectory());
-            log.debug(dir.toString());
             if (Files.isDirectory(dir)) {
                 serverDir=dir;
                 ctx.writeAndFlush(new ListMessage(dir));
