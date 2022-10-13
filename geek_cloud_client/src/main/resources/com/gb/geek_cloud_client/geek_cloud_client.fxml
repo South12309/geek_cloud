@@ -8,6 +8,6 @@
       <ListView fx:id="clientView" layoutX="10.0" layoutY="33.0" prefHeight="350.0" prefWidth="219.0" />
       <ListView fx:id="serverView" layoutX="333.0" layoutY="33.0" prefHeight="350.0" prefWidth="245.0" />
       <Button onAction="#sendToServer" layoutX="255.0" layoutY="60.0" mnemonicParsing="false" text="&gt;" />
-      <Button layoutX="261.0" layoutY="188.0" mnemonicParsing="false" text="&lt;" />
+      <Button onAction="#downloadFile" layoutX="261.0" layoutY="188.0" mnemonicParsing="false" text="&lt;" />
    </children>
 </AnchorPane>

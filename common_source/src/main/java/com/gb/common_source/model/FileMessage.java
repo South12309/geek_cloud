@@ -1,4 +1,4 @@
-package com.gb.model;
+package com.gb.common_source.model;
 
 import lombok.Getter;
 
