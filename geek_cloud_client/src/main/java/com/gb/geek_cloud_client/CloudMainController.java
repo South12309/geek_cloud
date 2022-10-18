@@ -8,6 +8,7 @@ import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.Initializable;
 import javafx.scene.control.ListView;
+import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
 import lombok.extern.slf4j.Slf4j;
 
@@ -27,6 +28,8 @@ import java.util.ResourceBundle;
 public class CloudMainController implements Initializable {
     public ListView<String> clientView;
     public ListView<String> serverView;
+    public TextField selectedFileOnClient;
+    public TextField selectedFileOnServer;
     private String currentDirectory;
 
     private Network<ObjectDecoderInputStream, ObjectEncoderOutputStream> network;
@@ -90,10 +93,17 @@ public class CloudMainController implements Initializable {
     }
 
     private void onMouseClickOnView(MouseEvent event, ListView<String> view, String directory, boolean isClient) {
+        String selected = view.getSelectionModel().getSelectedItem();
         if (event.getClickCount() == 2) {
-            String selected = view.getSelectionModel().getSelectedItem();
             String delimiter = (directory.equals(""))?"":"/";
             setDirectory(directory +  delimiter + selected, isClient);
+        }
+        if (event.getClickCount()==1) {
+            if (isClient) {
+                selectedFileOnClient.setText(selected);
+            } else {
+                selectedFileOnServer.setText(selected);
+            }
         }
     }
 
@@ -142,4 +152,15 @@ public class CloudMainController implements Initializable {
         return List.of();
     }
 
+    public void reNameOnClient(ActionEvent actionEvent) {
+    }
+
+    public void reNameOnServer(ActionEvent actionEvent) {
+    }
+
+    public void deleteSelectedFileOnClient(ActionEvent actionEvent) {
+    }
+
+    public void deleteSelectedFileOnServer(ActionEvent actionEvent) {
+    }
 }

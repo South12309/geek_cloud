@@ -3,11 +3,19 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.gb.geek_cloud_client.CloudMainController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.gb.geek_cloud_client.CloudMainController">
    <children>
-      <ListView fx:id="clientView" layoutX="10.0" layoutY="33.0" prefHeight="350.0" prefWidth="219.0" />
-      <ListView fx:id="serverView" layoutX="333.0" layoutY="33.0" prefHeight="350.0" prefWidth="245.0" />
-      <Button onAction="#sendToServer" layoutX="255.0" layoutY="60.0" mnemonicParsing="false" text="&gt;" />
-      <Button onAction="#downloadFile" layoutX="261.0" layoutY="188.0" mnemonicParsing="false" text="&lt;" />
+      <ListView fx:id="clientView" layoutX="49.0" layoutY="80.0" prefHeight="280.0" prefWidth="220.0" />
+      <ListView fx:id="serverView" layoutX="335.0" layoutY="80.0" prefHeight="280.0" prefWidth="220.0" />
+      <Button layoutX="273.0" layoutY="188.0" mnemonicParsing="false" onAction="#sendToServer" prefHeight="25.0" prefWidth="54.0" text="&gt;" />
+      <Button layoutX="273.0" layoutY="235.0" mnemonicParsing="false" onAction="#downloadFile" prefHeight="25.0" prefWidth="54.0" text="&lt;" />
+      <TextField fx:id="selectedFileOnClient" layoutX="49.0" layoutY="43.0" />
+      <TextField fx:id="selectedFileOnServer" layoutX="335.0" layoutY="43.0" />
+      <Button layoutX="210.0" layoutY="43.0" mnemonicParsing="false" onAction="#reNameOnClient" text="Rename" />
+      <Button layoutX="496.0" layoutY="43.0" mnemonicParsing="false" onAction="#reNameOnServer" text="Rename" />
+      <Button layoutX="99.0" layoutY="360.0" mnemonicParsing="false" onAction="#deleteSelectedFileOnClient" text="Delete Selected File" />
+      <Button layoutX="385.0" layoutY="360.0" mnemonicParsing="false" onAction="#deleteSelectedFileOnServer" prefHeight="25.0" prefWidth="120.0" text="Delete Selected File" />
+      <Label layoutX="124.0" layoutY="14.0" text="Client" />
+      <Label layoutX="410.0" layoutY="14.0" text="Server" />
    </children>
 </AnchorPane>

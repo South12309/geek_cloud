@@ -3,8 +3,8 @@ package com.gb.geek_cloud_server;
 import java.io.*;
 import java.net.Socket;
 
-import static com.gb.Command.*;
-import static com.gb.FileUtils.readFileFromStream;
+import static com.gb.common_source.Command.*;
+import static com.gb.common_source.FileUtils.readFileFromStream;
 
 public class FileHandler implements Runnable {
 
