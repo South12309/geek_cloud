@@ -173,7 +173,17 @@ public class CloudMainController implements Initializable {
     }
 
     public void deleteSelectedFileOnClient(ActionEvent actionEvent) {
-        selectedFileOnClient.setText("");
+        Path file = Paths.get(currentDirectory,clientView.getSelectionModel().getSelectedItem());
+        try {
+            if (!Files.isDirectory(file)) {
+                Files.delete(file);
+                fillView(clientView, getFiles(currentDirectory));
+                selectedFileOnClient.setText("");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
     public void deleteSelectedFileOnServer(ActionEvent actionEvent) throws IOException {
