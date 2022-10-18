@@ -155,12 +155,16 @@ public class CloudMainController implements Initializable {
     public void reNameOnClient(ActionEvent actionEvent) {
     }
 
-    public void reNameOnServer(ActionEvent actionEvent) {
+    public void reNameOnServer(ActionEvent actionEvent) throws IOException {
+        String fileName = serverView.getSelectionModel().getSelectedItem();
+        network.getOutputStream().writeObject(new RenameFile(fileName, selectedFileOnServer.getText()));
     }
 
     public void deleteSelectedFileOnClient(ActionEvent actionEvent) {
     }
 
-    public void deleteSelectedFileOnServer(ActionEvent actionEvent) {
+    public void deleteSelectedFileOnServer(ActionEvent actionEvent) throws IOException {
+        String fileName = serverView.getSelectionModel().getSelectedItem();
+        network.getOutputStream().writeObject(new DeleteFile(fileName));
     }
 }
