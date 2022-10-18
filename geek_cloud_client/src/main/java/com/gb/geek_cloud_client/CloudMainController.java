@@ -18,6 +18,7 @@ import java.net.Socket;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -153,18 +154,31 @@ public class CloudMainController implements Initializable {
     }
 
     public void reNameOnClient(ActionEvent actionEvent) {
+        Path file = Paths.get(currentDirectory,clientView.getSelectionModel().getSelectedItem());
+        try {
+            if (!Files.isDirectory(file)) {
+                Files.move(file, file.resolveSibling(selectedFileOnClient.getText()));
+                fillView(clientView, getFiles(currentDirectory));
+                selectedFileOnClient.setText("");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void reNameOnServer(ActionEvent actionEvent) throws IOException {
         String fileName = serverView.getSelectionModel().getSelectedItem();
         network.getOutputStream().writeObject(new RenameFile(fileName, selectedFileOnServer.getText()));
+        selectedFileOnServer.setText("");
     }
 
     public void deleteSelectedFileOnClient(ActionEvent actionEvent) {
+        selectedFileOnClient.setText("");
     }
 
     public void deleteSelectedFileOnServer(ActionEvent actionEvent) throws IOException {
         String fileName = serverView.getSelectionModel().getSelectedItem();
         network.getOutputStream().writeObject(new DeleteFile(fileName));
+        selectedFileOnServer.setText("");
     }
 }
