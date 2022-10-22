@@ -1,4 +1,5 @@
 module com.gb.geek_cloud_client  {
+    requires java.sql;
     requires javafx.controls;
     requires javafx.fxml;
     requires io.netty.all;

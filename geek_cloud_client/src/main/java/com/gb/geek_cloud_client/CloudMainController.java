@@ -2,6 +2,7 @@ package com.gb.geek_cloud_client;
 
 import com.gb.common_source.DaemonThreadFactory;
 import com.gb.common_source.model.*;
+import com.gb.common_source.model.file.*;
 import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
 import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 import javafx.application.Platform;

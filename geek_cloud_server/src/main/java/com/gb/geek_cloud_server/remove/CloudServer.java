@@ -1,4 +1,4 @@
-package com.gb.geek_cloud_server;
+package com.gb.geek_cloud_server.remove;
 
 import com.gb.common_source.DaemonThreadFactory;
 

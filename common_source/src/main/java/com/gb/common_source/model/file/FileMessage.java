@@ -1,5 +1,7 @@
-package com.gb.common_source.model;
+package com.gb.common_source.model.file;
 
+import com.gb.common_source.model.CloudMessage;
+import com.gb.common_source.model.MessageType;
 import lombok.Getter;
 
 import java.io.IOException;

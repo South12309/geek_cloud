@@ -1,4 +1,4 @@
-package com.gb.geek_cloud_server.netty;
+package com.gb.geek_cloud_server.remove;
 
 
 import io.netty.buffer.ByteBuf;
