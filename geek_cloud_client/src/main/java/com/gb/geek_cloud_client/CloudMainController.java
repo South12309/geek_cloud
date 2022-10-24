@@ -2,12 +2,19 @@ package com.gb.geek_cloud_client;
 
 import com.gb.common_source.DaemonThreadFactory;
 import com.gb.common_source.model.*;
+import com.gb.common_source.model.auth.AuthRequest;
+import com.gb.common_source.model.auth.AuthResponse;
+import com.gb.common_source.model.auth.AuthResponseEnum;
 import com.gb.common_source.model.file.*;
+import com.gb.common_source.model.reg.RegRequest;
+import com.gb.common_source.model.reg.RegResponse;
+import com.gb.common_source.model.reg.RegResponseEnum;
 import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
 import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.Initializable;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
@@ -32,6 +39,12 @@ public class CloudMainController implements Initializable {
     public ListView<String> serverView;
     public TextField selectedFileOnClient;
     public TextField selectedFileOnServer;
+    public TextField passwordFieldAuth;
+    public TextField loginFieldAuth;
+    public TextField passwordFieldReg;
+    public TextField loginFieldReg;
+    public Label regAnswer;
+    public Label authAnswer;
     private String currentDirectory;
 
     private Network<ObjectDecoderInputStream, ObjectEncoderOutputStream> network;
@@ -61,6 +74,22 @@ public class CloudMainController implements Initializable {
                     Platform.runLater(() -> fillView(clientView, getFiles(currentDirectory)));
                 } else if (message instanceof ListMessage listMessage) {
                     Platform.runLater(() -> fillView(serverView, listMessage.getFiles()));
+                } else if (message instanceof AuthResponse authResponse) {
+                    if (authResponse.getAuthResponseEnum().equals(AuthResponseEnum.AUTH_OK)) {
+                        Platform.runLater(() -> authAnswer.setText("Auth OK"));
+                        authAnswer.setVisible(true);
+                    } else {
+                        Platform.runLater(() -> authAnswer.setText("Auth error"));
+                        authAnswer.setVisible(true);
+                    }
+                } else if (message instanceof RegResponse regResponse) {
+                    if (regResponse.getRegResponseEnum().equals(RegResponseEnum.REG_OK)) {
+                        Platform.runLater(() -> regAnswer.setText("Reg OK"));
+                        regAnswer.setVisible(true);
+                    } else {
+                        Platform.runLater(() -> regAnswer.setText("Reg error"));
+                        regAnswer.setVisible(true);
+                    }
                 }
             }
         } catch (Exception e) {
@@ -191,5 +220,14 @@ public class CloudMainController implements Initializable {
         String fileName = serverView.getSelectionModel().getSelectedItem();
         network.getOutputStream().writeObject(new DeleteFile(fileName));
         selectedFileOnServer.setText("");
+    }
+
+    public void authorize(ActionEvent actionEvent) throws IOException {
+        network.getOutputStream().writeObject(new AuthRequest(loginFieldAuth.getText(), passwordFieldAuth.getText()));
+
+    }
+
+    public void register(ActionEvent actionEvent) throws IOException {
+        network.getOutputStream().writeObject(new RegRequest(loginFieldReg.getText(), passwordFieldReg.getText()));
     }
 }

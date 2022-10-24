@@ -24,6 +24,7 @@ public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
       //  serverDirUserName = rootDir+;
+        dirUserName=rootDir;
         ctx.writeAndFlush(new ListMessage(dirUserName));
         authService = new SQLAuthService();
         authService.run();
@@ -68,14 +69,20 @@ public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
         } else if (cloudMessage instanceof AuthRequest authRequest) {
             ctx.writeAndFlush(authService.authorization(authRequest));
             setDirUserName(authService.getDirNameLogin());
+            ctx.writeAndFlush(new ListMessage(dirUserName));
 
         } else if (cloudMessage instanceof RegRequest regRequest) {
             ctx.writeAndFlush(authService.registration(regRequest));
+
         }
 
     }
 
-    private void setDirUserName(String dirNameLogin) {
-        dirUserName = rootDir.resolve(dirNameLogin);
+    private void setDirUserName(String dirNameLogin) throws IOException {
+        Path tempDir = rootDir.resolve(dirNameLogin);
+        if (!Files.exists(tempDir)) {
+            Files.createDirectories(tempDir);
+        }
+        dirUserName = tempDir;
     }
 }
