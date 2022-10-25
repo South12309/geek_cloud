@@ -9,9 +9,10 @@
       <TextField fx:id="passwordFieldAuth" layoutX="143.0" layoutY="138.0" />
       <Label layoutX="76.0" layoutY="98.0" text="Логин" />
       <Label layoutX="76.0" layoutY="142.0" text="Пароль" />
-      <Label layoutX="136.0" layoutY="54.0" text="Авторизация" />
-      <Button onAction="#onAuthorization" layoutX="148.0" layoutY="180.0" mnemonicParsing="false" text="Войти" />
-      <Button onAction="#onSwitchToRegWindow" layoutX="260.0" layoutY="14.0" mnemonicParsing="false" text="Регистрация" />
+      <Label fx:id="authRegLabel" layoutX="136.0" layoutY="54.0" text="Авторизация" />
+      <Button fx:id="submitButton" layoutX="148.0" layoutY="180.0" mnemonicParsing="false" onAction="#onAuthorization" text="Войти" />
+      <Button fx:id="regButton" layoutX="260.0" layoutY="14.0" mnemonicParsing="false" onAction="#onSwitchToRegWindow" text="Регистрация" />
+      <Button fx:id="backButton" layoutX="41.0" layoutY="14.0" mnemonicParsing="false" onAction="#onBack" text="Назад" visible="false" />
    </children>
 
 </AnchorPane>

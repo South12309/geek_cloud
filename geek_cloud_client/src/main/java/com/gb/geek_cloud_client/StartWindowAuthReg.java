@@ -12,15 +12,13 @@ import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
 import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonBar;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.stage.Stage;
 import lombok.extern.slf4j.Slf4j;
 
@@ -34,57 +32,92 @@ import java.util.ResourceBundle;
 public class StartWindowAuthReg implements Initializable {
     public TextField loginFieldAuth;
     public TextField passwordFieldAuth;
-    public TextField loginFieldReg;
-    public TextField passwordFieldReg;
+    public Button submitButton;
+    public Button regButton;
+    public Button backButton;
+    public Label authRegLabel;
     private ActionEvent lastEvent;
     private Stage stage;
     private Scene scene;
     private Parent root;
-    private String test="null";
-//    private Thread thread;
+    private String test = "null";
+    private DaemonThreadFactory factory;
+    private Thread thread;
     private Network<ObjectDecoderInputStream, ObjectEncoderOutputStream> network;
 
+    private void switchFormToReg() throws IOException {
+        regButton.setVisible(false);
+        submitButton.setText("Регистрировать");
+        authRegLabel.setText("Регистрация");
+        submitButton.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                try {
+                    onRegistration(event);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+        backButton.setVisible(true);
+    }
+
+    private void switchFormToAuth() throws IOException {
+        regButton.setVisible(true);
+        submitButton.setText("Войти");
+        authRegLabel.setText("Авторизация");
+        submitButton.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                try {
+                    onAuthorization(event);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+        backButton.setVisible(false);
+    }
+
     public void onAuthorization(ActionEvent actionEvent) throws IOException {
-        log.debug("Войти");
-        lastEvent=actionEvent;
+        lastEvent = actionEvent;
         network.getOutputStream().writeObject(new AuthRequest(loginFieldAuth.getText(), passwordFieldAuth.getText()));
     }
 
     public void onRegistration(ActionEvent actionEvent) throws IOException {
-        log.debug("Регистрация");
-        lastEvent=actionEvent;
-        network.getOutputStream().writeObject(new RegRequest(loginFieldReg.getText(), passwordFieldReg.getText()));
+        lastEvent = actionEvent;
+        network.getOutputStream().writeObject(new RegRequest(loginFieldAuth.getText(), passwordFieldAuth.getText()));
     }
 
-    public void onSwitchToRegWindow(ActionEvent actionEvent) {
-        log.debug("Переключить на регистрацию");
-        lastEvent=actionEvent;
-        Platform.runLater(() -> switchScene("geek_cloud_reg.fxml"));
+    public void onSwitchToRegWindow(ActionEvent actionEvent) throws IOException {
+        lastEvent = actionEvent;
+        switchFormToReg();
+//        Platform.runLater(() -> switchScene("geek_cloud_reg.fxml"));
     }
 
-    public void onBack(ActionEvent actionEvent) {
-        log.debug("Возврат к авторизации");
-        lastEvent=actionEvent;
-        Platform.runLater(() -> switchScene("geek_cloud_auth.fxml"));
+    public void onBack(ActionEvent actionEvent) throws IOException {
+        lastEvent = actionEvent;
+        switchFormToAuth();
+//        Platform.runLater(() -> switchScene("geek_cloud_auth.fxml"));
     }
-@Override
+
+    @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-    log.debug("Инициализация-------------------------------------------------");
+        log.debug("Инициализация-------------------------------------------------");
 //    log.debug((factory==null)?"NULL":factory.toString());
         initNetwork();
-   log.debug(this.toString());
+        log.debug(this.toString());
 //    test = "sdfsdf";
 //    log.debug(test);
-}
+    }
+
     private void initNetwork() {
-            network = Network.getInstance();
-            ThreadChannel.startInstance(this::auth);
-//            if (factory==null) {
-//                factory = DaemonThreadFactory.getInstance();
-//                Thread thread = factory.getThread(this::auth, "cloud-auth-read-thread");
-//                thread.start();
-//
-//            }
+        network = Network.getInstance();
+        //           ThreadChannel.startInstance(this::auth);
+
+        factory = DaemonThreadFactory.getInstance();
+        thread = factory.newThread(this::auth);
+        thread.start();
 
     }
 
@@ -103,12 +136,12 @@ public class StartWindowAuthReg implements Initializable {
                 } else if (cloudMessage instanceof RegResponse regResponse) {
                     if (regResponse.getRegResponseEnum().equals(RegResponseEnum.REG_OK)) {
                         Platform.runLater(() -> showOk("Пользователь успешно зарегистрирован"));
-                        Platform.runLater(() -> switchScene("geek_cloud_auth.fxml"));
-                        break;
+                        //  Platform.runLater(() -> switchScene("geek_cloud_auth.fxml"));
+
                     } else if (regResponse.getRegResponseEnum().equals(RegResponseEnum.REG_WRONG)) {
                         Platform.runLater(() -> showError("Ошибка регистрации"));
                     }
-                    }
+                }
 
             } catch (ClassNotFoundException | IOException e) {
                 e.printStackTrace();
@@ -130,6 +163,7 @@ public class StartWindowAuthReg implements Initializable {
 
     private void switchScene(String viewName) {
 
+        thread.interrupt();
         FXMLLoader loader = new FXMLLoader(getClass().getResource(viewName));
         try {
             root = loader.load();
@@ -138,6 +172,7 @@ public class StartWindowAuthReg implements Initializable {
             throw new RuntimeException(e);
         }
         stage = (Stage)((Node)lastEvent.getSource()).getScene().getWindow();
+  //      stage = new Stage();
         stage.setTitle("Cloud Client");
         stage.setScene(scene);
         stage.show();
