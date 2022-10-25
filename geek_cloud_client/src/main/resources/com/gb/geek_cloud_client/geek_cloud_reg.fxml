@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane prefHeight="275.0" prefWidth="348.0" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.gb.geek_cloud_client.StartWindowAuthReg">
+    <children>
+        <TextField fx:id="loginFieldReg" layoutX="143.0" layoutY="94.0" />
+        <TextField fx:id="passwordFieldReg" layoutX="143.0" layoutY="138.0" />
+        <Label layoutX="76.0" layoutY="98.0" text="Логин" />
+        <Label layoutX="76.0" layoutY="142.0" text="Пароль" />
+        <Label layoutX="136.0" layoutY="54.0" text="Регистрация" />
+        <Button layoutX="148.0" layoutY="180.0" mnemonicParsing="false" onAction="#onRegistration" text="Зарегистрировать" />
+        <Button layoutX="27.0" layoutY="20.0" mnemonicParsing="false" onAction="#onBack" text="Назад" />
+    </children>
+
+</AnchorPane>

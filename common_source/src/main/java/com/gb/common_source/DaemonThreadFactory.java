@@ -4,6 +4,7 @@ import java.util.concurrent.ThreadFactory;
 
 public class DaemonThreadFactory implements ThreadFactory {
 
+    private static DaemonThreadFactory instance;
 
     @Override
     public Thread newThread(Runnable r) {
@@ -17,5 +18,12 @@ public class DaemonThreadFactory implements ThreadFactory {
         thread.setName(name);
         thread.setDaemon(true);
         return thread;
+    }
+
+    public static DaemonThreadFactory getInstance() {
+        if (instance==null) {
+            instance = new DaemonThreadFactory();
+        }
+        return instance;
     }
 }

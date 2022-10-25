@@ -4,6 +4,8 @@ import com.gb.common_source.model.*;
 import com.gb.common_source.model.auth.AuthRequest;
 import com.gb.common_source.model.file.*;
 import com.gb.common_source.model.reg.RegRequest;
+import com.gb.common_source.model.reg.RegResponse;
+import com.gb.common_source.model.reg.RegResponseEnum;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +27,7 @@ public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
       //  serverDirUserName = rootDir+;
         dirUserName=rootDir;
-        ctx.writeAndFlush(new ListMessage(dirUserName));
+      // ctx.writeAndFlush(new ListMessage(dirUserName));
         authService = new SQLAuthService();
         authService.run();
     }
@@ -73,6 +75,7 @@ public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
 
         } else if (cloudMessage instanceof RegRequest regRequest) {
             ctx.writeAndFlush(authService.registration(regRequest));
+         //  ctx.writeAndFlush(new RegResponse(RegResponseEnum.REG_OK));
 
         }
 

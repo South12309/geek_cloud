@@ -39,12 +39,12 @@ public class CloudMainController implements Initializable {
     public ListView<String> serverView;
     public TextField selectedFileOnClient;
     public TextField selectedFileOnServer;
-    public TextField passwordFieldAuth;
-    public TextField loginFieldAuth;
-    public TextField passwordFieldReg;
-    public TextField loginFieldReg;
-    public Label regAnswer;
-    public Label authAnswer;
+    //    public TextField passwordFieldAuth;
+//    public TextField loginFieldAuth;
+//    public TextField passwordFieldReg;
+//    public TextField loginFieldReg;
+//    public Label regAnswer;
+//    public Label authAnswer;
     private String currentDirectory;
 
     private Network<ObjectDecoderInputStream, ObjectEncoderOutputStream> network;
@@ -53,7 +53,6 @@ public class CloudMainController implements Initializable {
 
     private boolean needReadMessages = true;
 
-    private DaemonThreadFactory factory;
 
     public void downloadFile(ActionEvent actionEvent) throws IOException {
         String fileName = serverView.getSelectionModel().getSelectedItem();
@@ -74,22 +73,6 @@ public class CloudMainController implements Initializable {
                     Platform.runLater(() -> fillView(clientView, getFiles(currentDirectory)));
                 } else if (message instanceof ListMessage listMessage) {
                     Platform.runLater(() -> fillView(serverView, listMessage.getFiles()));
-                } else if (message instanceof AuthResponse authResponse) {
-                    if (authResponse.getAuthResponseEnum().equals(AuthResponseEnum.AUTH_OK)) {
-                        Platform.runLater(() -> authAnswer.setText("Auth OK"));
-                        authAnswer.setVisible(true);
-                    } else {
-                        Platform.runLater(() -> authAnswer.setText("Auth error"));
-                        authAnswer.setVisible(true);
-                    }
-                } else if (message instanceof RegResponse regResponse) {
-                    if (regResponse.getRegResponseEnum().equals(RegResponseEnum.REG_OK)) {
-                        Platform.runLater(() -> regAnswer.setText("Reg OK"));
-                        regAnswer.setVisible(true);
-                    } else {
-                        Platform.runLater(() -> regAnswer.setText("Reg error"));
-                        regAnswer.setVisible(true);
-                    }
                 }
             }
         } catch (Exception e) {
@@ -99,23 +82,15 @@ public class CloudMainController implements Initializable {
     }
 
     private void initNetwork() {
-        try {
-            socket = new Socket("localhost", 8189);
-            network = new Network<>(
-                    new ObjectDecoderInputStream(socket.getInputStream()),
-                    new ObjectEncoderOutputStream(socket.getOutputStream())
-            );
-            factory.getThread(this::readMessages, "cloud-client-read-thread")
-                    .start();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        network = Network.getInstance();
+        DaemonThreadFactory factory = DaemonThreadFactory.getInstance();
+        factory.getThread(this::readMessages, "cloud-client-read-thread")
+                .start();
     }
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         needReadMessages = true;
-        factory = new DaemonThreadFactory();
         initNetwork();
         setCurrentDirectory(System.getProperty("user.home"));
         fillView(clientView, getFiles(currentDirectory));
@@ -126,10 +101,10 @@ public class CloudMainController implements Initializable {
     private void onMouseClickOnView(MouseEvent event, ListView<String> view, String directory, boolean isClient) {
         String selected = view.getSelectionModel().getSelectedItem();
         if (event.getClickCount() == 2) {
-            String delimiter = (directory.equals(""))?"":"/";
-            setDirectory(directory +  delimiter + selected, isClient);
+            String delimiter = (directory.equals("")) ? "" : "/";
+            setDirectory(directory + delimiter + selected, isClient);
         }
-        if (event.getClickCount()==1) {
+        if (event.getClickCount() == 1) {
             if (isClient) {
                 selectedFileOnClient.setText(selected);
             } else {
@@ -184,7 +159,7 @@ public class CloudMainController implements Initializable {
     }
 
     public void reNameOnClient(ActionEvent actionEvent) {
-        Path file = Paths.get(currentDirectory,clientView.getSelectionModel().getSelectedItem());
+        Path file = Paths.get(currentDirectory, clientView.getSelectionModel().getSelectedItem());
         try {
             if (!Files.isDirectory(file)) {
                 Files.move(file, file.resolveSibling(selectedFileOnClient.getText()));
@@ -203,7 +178,7 @@ public class CloudMainController implements Initializable {
     }
 
     public void deleteSelectedFileOnClient(ActionEvent actionEvent) {
-        Path file = Paths.get(currentDirectory,clientView.getSelectionModel().getSelectedItem());
+        Path file = Paths.get(currentDirectory, clientView.getSelectionModel().getSelectedItem());
         try {
             if (!Files.isDirectory(file)) {
                 Files.delete(file);
@@ -222,12 +197,5 @@ public class CloudMainController implements Initializable {
         selectedFileOnServer.setText("");
     }
 
-    public void authorize(ActionEvent actionEvent) throws IOException {
-        network.getOutputStream().writeObject(new AuthRequest(loginFieldAuth.getText(), passwordFieldAuth.getText()));
 
-    }
-
-    public void register(ActionEvent actionEvent) throws IOException {
-        network.getOutputStream().writeObject(new RegRequest(loginFieldReg.getText(), passwordFieldReg.getText()));
-    }
 }

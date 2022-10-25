@@ -22,10 +22,10 @@ public class SQLAuthService implements AuthService {
         try {
             preparedStatement = connection.
                     prepareStatement("INSERT INTO users (login, password) VALUES (?, ?);");
-        preparedStatement.setString(1, regRequest.getLogin());
-        preparedStatement.setString(2, regRequest.getPassword());
-        preparedStatement.executeUpdate();
-        return new RegResponse(RegResponseEnum.REG_OK);
+            preparedStatement.setString(1, regRequest.getLogin());
+            preparedStatement.setString(2, regRequest.getPassword());
+            preparedStatement.executeUpdate();
+            return new RegResponse(RegResponseEnum.REG_OK);
         } catch (SQLException e) {
             e.printStackTrace();
             return new RegResponse(RegResponseEnum.REG_WRONG);
@@ -43,14 +43,14 @@ public class SQLAuthService implements AuthService {
             ResultSet resultSet = preparedStatement.executeQuery();
             resultSet.next();
             dirNameLogin = resultSet.getString(1);
-            if (dirNameLogin.equals("")) {
-                return new AuthResponse(AuthResponseEnum.AUTH_WRONG);
-            } else {
-                return new AuthResponse(AuthResponseEnum.AUTH_OK);
-            }
         } catch (SQLException e) {
             e.printStackTrace();
+
+        }
+        if (dirNameLogin == null) {
             return new AuthResponse(AuthResponseEnum.AUTH_WRONG);
+        } else {
+            return new AuthResponse(AuthResponseEnum.AUTH_OK);
         }
 
     }
@@ -58,7 +58,7 @@ public class SQLAuthService implements AuthService {
     @Override
     public void run() {
         try {
-           // Class.forName("org.sqlite.JDBC");
+            // Class.forName("org.sqlite.JDBC");
             connection = DriverManager.getConnection("jdbc:sqlite:cloud.db");
             log.debug("Подключение к базе выполнено.");
         } catch (SQLException e) {
@@ -81,6 +81,9 @@ public class SQLAuthService implements AuthService {
     }
 
     public String getDirNameLogin() {
-        return dirNameLogin;
+        if (dirNameLogin == null)
+            return "";
+        else
+            return dirNameLogin;
     }
 }
