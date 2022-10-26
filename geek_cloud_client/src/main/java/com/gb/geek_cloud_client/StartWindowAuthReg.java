@@ -22,33 +22,32 @@ import javafx.scene.control.*;
 import javafx.stage.Stage;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.Closeable;
 import java.io.IOException;
-import java.net.Socket;
 import java.net.URL;
 import java.util.ResourceBundle;
 
 @Slf4j
 public class StartWindowAuthReg implements Initializable {
-    public TextField loginFieldAuth;
-    public TextField passwordFieldAuth;
+    public TextField loginField;
+    public TextField passwordField;
     public Button submitButton;
     public Button regButton;
     public Button backButton;
     public Label authRegLabel;
-    private ActionEvent lastEvent;
-    private Stage stage;
-    private Scene scene;
-    private Parent root;
-    private String test = "null";
-    private DaemonThreadFactory factory;
+    private ActionEvent thisEvent;
+//    private Stage stage;
+//    private Scene scene;
+//    private Parent root;
+  //  private String test = "null";
+ //   private DaemonThreadFactory factory;
     private Thread thread;
     private Network<ObjectDecoderInputStream, ObjectEncoderOutputStream> network;
 
     private void switchFormToReg() throws IOException {
         regButton.setVisible(false);
-        submitButton.setText("Регистрировать");
+        submitButton.setText("Зарегистрироваться");
         authRegLabel.setText("Регистрация");
+        backButton.setVisible(true);
         submitButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
@@ -59,13 +58,14 @@ public class StartWindowAuthReg implements Initializable {
                 }
             }
         });
-        backButton.setVisible(true);
+
     }
 
     private void switchFormToAuth() throws IOException {
         regButton.setVisible(true);
         submitButton.setText("Войти");
         authRegLabel.setText("Авторизация");
+        backButton.setVisible(false);
         submitButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
@@ -76,49 +76,39 @@ public class StartWindowAuthReg implements Initializable {
                 }
             }
         });
-        backButton.setVisible(false);
+
     }
 
     public void onAuthorization(ActionEvent actionEvent) throws IOException {
-        lastEvent = actionEvent;
-        network.getOutputStream().writeObject(new AuthRequest(loginFieldAuth.getText(), passwordFieldAuth.getText()));
+        thisEvent = actionEvent;
+        network.getOutputStream().writeObject(new AuthRequest(loginField.getText(), passwordField.getText()));
     }
 
     public void onRegistration(ActionEvent actionEvent) throws IOException {
-        lastEvent = actionEvent;
-        network.getOutputStream().writeObject(new RegRequest(loginFieldAuth.getText(), passwordFieldAuth.getText()));
+        thisEvent = actionEvent;
+        network.getOutputStream().writeObject(new RegRequest(loginField.getText(), passwordField.getText()));
     }
 
     public void onSwitchToRegWindow(ActionEvent actionEvent) throws IOException {
-        lastEvent = actionEvent;
+        thisEvent = actionEvent;
         switchFormToReg();
-//        Platform.runLater(() -> switchScene("geek_cloud_reg.fxml"));
     }
 
     public void onBack(ActionEvent actionEvent) throws IOException {
-        lastEvent = actionEvent;
+        thisEvent = actionEvent;
         switchFormToAuth();
-//        Platform.runLater(() -> switchScene("geek_cloud_auth.fxml"));
     }
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        log.debug("Инициализация-------------------------------------------------");
-//    log.debug((factory==null)?"NULL":factory.toString());
         initNetwork();
-        log.debug(this.toString());
-//    test = "sdfsdf";
-//    log.debug(test);
     }
 
     private void initNetwork() {
         network = Network.getInstance();
-        //           ThreadChannel.startInstance(this::auth);
-
-        factory = DaemonThreadFactory.getInstance();
-        thread = factory.newThread(this::auth);
+        DaemonThreadFactory factory = DaemonThreadFactory.getInstance();
+        thread = factory.getThread(this::auth, "cloud-client-auth-thread");
         thread.start();
-
     }
 
     private void auth() {
@@ -162,19 +152,20 @@ public class StartWindowAuthReg implements Initializable {
     }
 
     private void switchScene(String viewName) {
-
         thread.interrupt();
+        Scene scene;
         FXMLLoader loader = new FXMLLoader(getClass().getResource(viewName));
         try {
-            root = loader.load();
-            scene = new Scene(root);
+           Parent root = loader.load();
+           scene = new Scene(root);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        stage = (Stage)((Node)lastEvent.getSource()).getScene().getWindow();
+        Stage stage = (Stage)((Node) thisEvent.getSource()).getScene().getWindow();
   //      stage = new Stage();
         stage.setTitle("Cloud Client");
         stage.setScene(scene);
+
         stage.show();
 
     }

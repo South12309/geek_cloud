@@ -5,8 +5,8 @@
 
 <AnchorPane prefHeight="275.0" prefWidth="348.0" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.gb.geek_cloud_client.StartWindowAuthReg">
    <children>
-      <TextField fx:id="loginFieldAuth" layoutX="143.0" layoutY="94.0" />
-      <TextField fx:id="passwordFieldAuth" layoutX="143.0" layoutY="138.0" />
+      <TextField fx:id="loginField" layoutX="143.0" layoutY="94.0" />
+      <PasswordField fx:id="passwordField" layoutX="143.0" layoutY="138.0" />
       <Label layoutX="76.0" layoutY="98.0" text="Логин" />
       <Label layoutX="76.0" layoutY="142.0" text="Пароль" />
       <Label fx:id="authRegLabel" layoutX="136.0" layoutY="54.0" text="Авторизация" />

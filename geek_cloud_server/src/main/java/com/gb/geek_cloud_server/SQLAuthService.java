@@ -18,10 +18,8 @@ public class SQLAuthService implements AuthService {
 
     @Override
     public RegResponse registration(RegRequest regRequest) {
-        PreparedStatement preparedStatement = null;
-        try {
-            preparedStatement = connection.
-                    prepareStatement("INSERT INTO users (login, password) VALUES (?, ?);");
+        try (PreparedStatement preparedStatement = connection.
+                    prepareStatement("INSERT INTO users (login, password) VALUES (?, ?);")) {
             preparedStatement.setString(1, regRequest.getLogin());
             preparedStatement.setString(2, regRequest.getPassword());
             preparedStatement.executeUpdate();
@@ -34,10 +32,8 @@ public class SQLAuthService implements AuthService {
 
     @Override
     public AuthResponse authorization(AuthRequest authRequest) {
-        PreparedStatement preparedStatement = null;
-        try {
-            preparedStatement = connection.
-                    prepareStatement("SELECT login FROM users WHERE login=? AND password=?;");
+        try (PreparedStatement preparedStatement = connection.
+                    prepareStatement("SELECT login FROM users WHERE login=? AND password=?;")) {
             preparedStatement.setString(1, authRequest.getLogin());
             preparedStatement.setString(2, authRequest.getPassword());
             ResultSet resultSet = preparedStatement.executeQuery();
@@ -58,7 +54,6 @@ public class SQLAuthService implements AuthService {
     @Override
     public void run() {
         try {
-            // Class.forName("org.sqlite.JDBC");
             connection = DriverManager.getConnection("jdbc:sqlite:cloud.db");
             log.debug("Подключение к базе выполнено.");
         } catch (SQLException e) {
