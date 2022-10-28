@@ -1,11 +1,10 @@
 package com.gb.geek_cloud_server;
 
+import com.gb.common_source.FileUtils;
 import com.gb.common_source.model.*;
 import com.gb.common_source.model.auth.AuthRequest;
 import com.gb.common_source.model.file.*;
 import com.gb.common_source.model.reg.RegRequest;
-import com.gb.common_source.model.reg.RegResponse;
-import com.gb.common_source.model.reg.RegResponseEnum;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+
+import static java.nio.file.StandardOpenOption.APPEND;
 
 @Slf4j
 public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
@@ -41,7 +41,7 @@ public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
     protected void channelRead0(ChannelHandlerContext ctx, CloudMessage cloudMessage) throws Exception {
         log.debug("Received: {}", cloudMessage.getType());
         if (cloudMessage instanceof FileMessage fileMessage) {
-            Files.write(dirUserName.resolve(fileMessage.getFileName()), fileMessage.getBytes());
+            FileUtils.writeFile(fileMessage, dirUserName);
             ctx.writeAndFlush(new ListMessage(dirUserName));
         } else if (cloudMessage instanceof FileRequest fileRequest) {
             Path file = dirUserName.resolve(fileRequest.getFileName());
@@ -80,6 +80,8 @@ public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
         }
 
     }
+
+
 
     private void setDirUserName(String dirNameLogin) throws IOException {
         Path tempDir = rootDir.resolve(dirNameLogin);

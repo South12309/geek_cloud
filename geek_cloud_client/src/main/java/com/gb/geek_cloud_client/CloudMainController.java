@@ -1,26 +1,22 @@
 package com.gb.geek_cloud_client;
 
 import com.gb.common_source.DaemonThreadFactory;
+import com.gb.common_source.FileUtils;
 import com.gb.common_source.model.*;
-import com.gb.common_source.model.auth.AuthRequest;
-import com.gb.common_source.model.auth.AuthResponse;
-import com.gb.common_source.model.auth.AuthResponseEnum;
 import com.gb.common_source.model.file.*;
-import com.gb.common_source.model.reg.RegRequest;
-import com.gb.common_source.model.reg.RegResponse;
-import com.gb.common_source.model.reg.RegResponseEnum;
 import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
 import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.URL;
@@ -31,6 +27,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 @Slf4j
@@ -61,7 +59,52 @@ public class CloudMainController implements Initializable {
 
     public void sendToServer(ActionEvent actionEvent) throws IOException {
         String fileName = clientView.getSelectionModel().getSelectedItem();
-        network.getOutputStream().writeObject(new FileMessage(Path.of(currentDirectory).resolve(fileName)));
+        Path file = Path.of(currentDirectory).resolve(fileName);
+        long size = Files.size(file);
+        if (size> FileUtils.FILE_PART_SIZE) {
+            sendFileToServerByPart(file);
+        }
+        else{
+            FileMessage fileMessage = new FileMessage(file);
+            network.getOutputStream().writeObject(fileMessage);
+        }
+    }
+
+    private void sendFileToServerByPart(Path file) {
+        sendFile(file);
+    }
+
+    private void sendFile(Path file) {
+        Thread sendFileThread = new Thread(() -> {
+
+            Lock lock = new ReentrantLock();
+            lock.lock();
+        try (FileInputStream fileInputStream = new FileInputStream(file.toFile())) {
+            String fileName = file.getFileName().toString();
+            int readBuffer;
+            byte[] buffer = new byte[FileUtils.FILE_PART_SIZE];
+            int i =0;
+            FileMessage fileMessage=null;
+            while ((readBuffer = fileInputStream.read(buffer)) !=-1) {
+                if (i==0) {
+                    fileMessage = new FileMessage(fileName, buffer, FileMessage.StartEndInfoEnum.START);
+                } else {
+                    fileMessage = new FileMessage(fileName, buffer, FileMessage.StartEndInfoEnum.MIDDLE);
+                }
+                network.getOutputStream().writeObject(fileMessage);
+            }
+            fileMessage = new FileMessage(fileName, new byte[0], FileMessage.StartEndInfoEnum.END);
+            network.getOutputStream().writeObject(fileMessage);
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            lock.unlock();
+        }
+        });
+        sendFileThread.setDaemon(true);
+        sendFileThread.start();
     }
 
     private void readMessages() {
