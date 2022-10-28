@@ -1,5 +1,6 @@
 module com.gb.common_source  {
     requires lombok;
+    requires org.slf4j;
 
     exports com.gb.common_source;
     exports com.gb.common_source.model;

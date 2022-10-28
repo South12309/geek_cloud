@@ -11,7 +11,7 @@ import static java.nio.file.StandardOpenOption.APPEND;
 @Slf4j
 public class FileUtils {
 
-    public static int FILE_PART_SIZE=5000;
+    public static int FILE_PART_SIZE=1024*1000;
 
     public static void writeFile(FileMessage fileMessage, Path dirUserName) throws IOException {
         Path file_temp = dirUserName.resolve(fileMessage.getFileName()+"_temp");

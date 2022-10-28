@@ -92,6 +92,7 @@ public class CloudMainController implements Initializable {
                     fileMessage = new FileMessage(fileName, buffer, FileMessage.StartEndInfoEnum.MIDDLE);
                 }
                 network.getOutputStream().writeObject(fileMessage);
+                i++;
             }
             fileMessage = new FileMessage(fileName, new byte[0], FileMessage.StartEndInfoEnum.END);
             network.getOutputStream().writeObject(fileMessage);
