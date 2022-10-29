@@ -71,12 +71,7 @@ public class CloudMainController implements Initializable {
     }
 
     private void sendFileToServerByPart(Path file) {
-        sendFile(file);
-    }
-
-    private void sendFile(Path file) {
         Thread sendFileThread = new Thread(() -> {
-
             Lock lock = new ReentrantLock();
             lock.lock();
         try (FileInputStream fileInputStream = new FileInputStream(file.toFile())) {
@@ -113,7 +108,8 @@ public class CloudMainController implements Initializable {
             while (needReadMessages) {
                 CloudMessage message = (CloudMessage) network.getInputStream().readObject();
                 if (message instanceof FileMessage fileMessage) {
-                    Files.write(Path.of(currentDirectory).resolve(fileMessage.getFileName()), fileMessage.getBytes());
+                    FileUtils.writeFile(fileMessage, Path.of(currentDirectory));
+                   // Files.write(Path.of(currentDirectory).resolve(fileMessage.getFileName()), fileMessage.getBytes());
                     Platform.runLater(() -> fillView(clientView, getFiles(currentDirectory)));
                 } else if (message instanceof ListMessage listMessage) {
                     Platform.runLater(() -> fillView(serverView, listMessage.getFiles()));

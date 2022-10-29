@@ -17,6 +17,7 @@
       <Button layoutX="394.0" layoutY="391.0" mnemonicParsing="false" onAction="#deleteSelectedFileOnServer" prefHeight="25.0" prefWidth="120.0" text="Delete Selected File" />
       <Label layoutX="113.0" layoutY="62.0" text="Client" />
       <Label layoutX="429.0" layoutY="62.0" text="Server" />
+      <ProgressBar layoutX="38.0" layoutY="37.0" prefHeight="18.0" prefWidth="528.0" progress="0.0" />
 
    </children>
 </AnchorPane>

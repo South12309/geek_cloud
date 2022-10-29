@@ -35,11 +35,7 @@ public class StartWindowAuthReg implements Initializable {
     public Button backButton;
     public Label authRegLabel;
     private ActionEvent thisEvent;
-//    private Stage stage;
-//    private Scene scene;
-//    private Parent root;
-  //  private String test = "null";
- //   private DaemonThreadFactory factory;
+
     private Thread thread;
     private Network<ObjectDecoderInputStream, ObjectEncoderOutputStream> network;
 

@@ -9,9 +9,12 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static java.nio.file.StandardOpenOption.APPEND;
 
@@ -44,10 +47,17 @@ public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
             FileUtils.writeFile(fileMessage, dirUserName);
             ctx.writeAndFlush(new ListMessage(dirUserName));
         } else if (cloudMessage instanceof FileRequest fileRequest) {
-            Path file = dirUserName.resolve(fileRequest.getFileName());
-            if (!Files.isDirectory(file)) {
-                ctx.writeAndFlush(new FileMessage(file));
+            String fileName = fileRequest.getFileName();
+            Path file = dirUserName.resolve(fileName);
+            long size = Files.size(file);
+            if (size> FileUtils.FILE_PART_SIZE) {
+                sendFileToServerByPart(file, ctx);
             }
+            else{
+                FileMessage fileMessage = new FileMessage(file);
+                ctx.writeAndFlush(fileMessage);
+            }
+
         } else if (cloudMessage instanceof DirRequest dirRequest) {
             Path dir = dirUserName.resolve(dirRequest.getDirectory());
             if (Files.isDirectory(dir)) {
@@ -81,7 +91,38 @@ public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
 
     }
 
+    private void sendFileToServerByPart(Path file, ChannelHandlerContext ctx) {
+        Thread sendFileThread = new Thread(() -> {
+            Lock lock = new ReentrantLock();
+            lock.lock();
+            try (FileInputStream fileInputStream = new FileInputStream(file.toFile())) {
+                String fileName = file.getFileName().toString();
+                int readBuffer;
+                byte[] buffer = new byte[FileUtils.FILE_PART_SIZE];
+                int i =0;
+                FileMessage fileMessage=null;
+                while ((readBuffer = fileInputStream.read(buffer)) !=-1) {
+                    if (i==0) {
+                        fileMessage = new FileMessage(fileName, buffer, FileMessage.StartEndInfoEnum.START);
+                    } else {
+                        fileMessage = new FileMessage(fileName, buffer, FileMessage.StartEndInfoEnum.MIDDLE);
+                    }
+                    ctx.writeAndFlush(fileMessage);
+                    i++;
+                }
+                fileMessage = new FileMessage(fileName, new byte[0], FileMessage.StartEndInfoEnum.END);
+                ctx.writeAndFlush(fileMessage);
 
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                lock.unlock();
+            }
+        });
+        sendFileThread.setDaemon(true);
+        sendFileThread.start();
+    }
 
     private void setDirUserName(String dirNameLogin) throws IOException {
         Path tempDir = rootDir.resolve(dirNameLogin);
