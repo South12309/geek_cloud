@@ -1,6 +1,8 @@
-package com.gb.model;
+package com.gb.common_source.model.file;
 
 
+import com.gb.common_source.model.CloudMessage;
+import com.gb.common_source.model.MessageType;
 import lombok.Getter;
 
 import java.io.IOException;
@@ -18,6 +20,7 @@ public class ListMessage implements CloudMessage {
         this.files = Files.list(path)
                 .map(p -> p.getFileName().toString())
                 .collect(Collectors.toList());
+        files.add(0, "..");
     }
 
     @Override
