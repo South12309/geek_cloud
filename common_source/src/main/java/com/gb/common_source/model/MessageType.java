@@ -8,5 +8,6 @@ public enum MessageType {
     AUTH_RESPONSE,
     AUTH_REQUEST,
     REG_REQUEST,
-    REG_RESPONSE
+    REG_RESPONSE,
+    PROGRESS
 }

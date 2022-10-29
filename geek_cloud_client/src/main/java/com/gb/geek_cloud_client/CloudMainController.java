@@ -10,6 +10,7 @@ import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.Initializable;
 import javafx.scene.control.ListView;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
 import lombok.extern.slf4j.Slf4j;
@@ -37,12 +38,8 @@ public class CloudMainController implements Initializable {
     public ListView<String> serverView;
     public TextField selectedFileOnClient;
     public TextField selectedFileOnServer;
-    //    public TextField passwordFieldAuth;
-//    public TextField loginFieldAuth;
-//    public TextField passwordFieldReg;
-//    public TextField loginFieldReg;
-//    public Label regAnswer;
-//    public Label authAnswer;
+    public ProgressBar progressBar;
+
     private String currentDirectory;
 
     private Network<ObjectDecoderInputStream, ObjectEncoderOutputStream> network;
@@ -61,10 +58,9 @@ public class CloudMainController implements Initializable {
         String fileName = clientView.getSelectionModel().getSelectedItem();
         Path file = Path.of(currentDirectory).resolve(fileName);
         long size = Files.size(file);
-        if (size> FileUtils.FILE_PART_SIZE) {
+        if (size > FileUtils.FILE_PART_SIZE) {
             sendFileToServerByPart(file);
-        }
-        else{
+        } else {
             FileMessage fileMessage = new FileMessage(file);
             network.getOutputStream().writeObject(fileMessage);
         }
@@ -74,30 +70,35 @@ public class CloudMainController implements Initializable {
         Thread sendFileThread = new Thread(() -> {
             Lock lock = new ReentrantLock();
             lock.lock();
-        try (FileInputStream fileInputStream = new FileInputStream(file.toFile())) {
-            String fileName = file.getFileName().toString();
-            int readBuffer;
-            byte[] buffer = new byte[FileUtils.FILE_PART_SIZE];
-            int i =0;
-            FileMessage fileMessage=null;
-            while ((readBuffer = fileInputStream.read(buffer)) !=-1) {
-                if (i==0) {
-                    fileMessage = new FileMessage(fileName, buffer, FileMessage.StartEndInfoEnum.START);
-                } else {
-                    fileMessage = new FileMessage(fileName, buffer, FileMessage.StartEndInfoEnum.MIDDLE);
+            try (FileInputStream fileInputStream = new FileInputStream(file.toFile())) {
+                float sizeFile = Files.size(file);
+                float partCount = sizeFile / FileUtils.FILE_PART_SIZE;
+                float progressPart = partCount/100;
+                String fileName = file.getFileName().toString();
+                int readBuffer;
+                byte[] buffer = new byte[FileUtils.FILE_PART_SIZE];
+                int i = 0;
+                FileMessage fileMessage = null;
+                while ((readBuffer = fileInputStream.read(buffer)) != -1) {
+                    float v = i * progressPart/100 ;
+                    progressBar.setProgress(v);
+                    if (i == 0) {
+                        fileMessage = new FileMessage(fileName, buffer, FileMessage.StartEndInfoEnum.START);
+                    } else {
+                        fileMessage = new FileMessage(fileName, buffer, FileMessage.StartEndInfoEnum.MIDDLE);
+                    }
+                    network.getOutputStream().writeObject(fileMessage);
+                    i++;
                 }
+                fileMessage = new FileMessage(fileName, new byte[0], FileMessage.StartEndInfoEnum.END);
                 network.getOutputStream().writeObject(fileMessage);
-                i++;
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                progressBar.setProgress(0);
+                lock.unlock();
             }
-            fileMessage = new FileMessage(fileName, new byte[0], FileMessage.StartEndInfoEnum.END);
-            network.getOutputStream().writeObject(fileMessage);
-
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            lock.unlock();
-        }
         });
         sendFileThread.setDaemon(true);
         sendFileThread.start();
@@ -109,10 +110,12 @@ public class CloudMainController implements Initializable {
                 CloudMessage message = (CloudMessage) network.getInputStream().readObject();
                 if (message instanceof FileMessage fileMessage) {
                     FileUtils.writeFile(fileMessage, Path.of(currentDirectory));
-                   // Files.write(Path.of(currentDirectory).resolve(fileMessage.getFileName()), fileMessage.getBytes());
+                    // Files.write(Path.of(currentDirectory).resolve(fileMessage.getFileName()), fileMessage.getBytes());
                     Platform.runLater(() -> fillView(clientView, getFiles(currentDirectory)));
                 } else if (message instanceof ListMessage listMessage) {
                     Platform.runLater(() -> fillView(serverView, listMessage.getFiles()));
+                } else if (message instanceof Progress progress) {
+                    progressBar.setProgress(progress.getProgress());
                 }
             }
         } catch (Exception e) {

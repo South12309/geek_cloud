@@ -16,21 +16,20 @@ import java.nio.file.Path;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static java.nio.file.StandardOpenOption.APPEND;
-
 @Slf4j
 public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
 
-    private Path rootDir =Path.of("server_files");;
+    private Path rootDir = Path.of("server_files");
+    ;
     private Path dirUserName;
 
     private AuthService authService;
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-      //  serverDirUserName = rootDir+;
-        dirUserName=rootDir;
-      // ctx.writeAndFlush(new ListMessage(dirUserName));
+        //  serverDirUserName = rootDir+;
+        dirUserName = rootDir;
+        // ctx.writeAndFlush(new ListMessage(dirUserName));
         authService = new SQLAuthService();
         authService.run();
     }
@@ -50,10 +49,9 @@ public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
             String fileName = fileRequest.getFileName();
             Path file = dirUserName.resolve(fileName);
             long size = Files.size(file);
-            if (size> FileUtils.FILE_PART_SIZE) {
-                sendFileToServerByPart(file, ctx);
-            }
-            else{
+            if (size > FileUtils.FILE_PART_SIZE) {
+                sendFileToClientByPart(file, ctx);
+            } else {
                 FileMessage fileMessage = new FileMessage(file);
                 ctx.writeAndFlush(fileMessage);
             }
@@ -61,7 +59,7 @@ public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
         } else if (cloudMessage instanceof DirRequest dirRequest) {
             Path dir = dirUserName.resolve(dirRequest.getDirectory());
             if (Files.isDirectory(dir)) {
-                dirUserName =dir;
+                dirUserName = dir;
                 ctx.writeAndFlush(new ListMessage(dir));
             }
         } else if (cloudMessage instanceof RenameFile renameFile) {
@@ -85,24 +83,31 @@ public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
 
         } else if (cloudMessage instanceof RegRequest regRequest) {
             ctx.writeAndFlush(authService.registration(regRequest));
-         //  ctx.writeAndFlush(new RegResponse(RegResponseEnum.REG_OK));
+            //  ctx.writeAndFlush(new RegResponse(RegResponseEnum.REG_OK));
 
         }
 
     }
 
-    private void sendFileToServerByPart(Path file, ChannelHandlerContext ctx) {
+    private void sendFileToClientByPart(Path file, ChannelHandlerContext ctx) {
         Thread sendFileThread = new Thread(() -> {
             Lock lock = new ReentrantLock();
             lock.lock();
             try (FileInputStream fileInputStream = new FileInputStream(file.toFile())) {
+                float sizeFile = Files.size(file);
+                float partCount = sizeFile / FileUtils.FILE_PART_SIZE;
+                float progressPart = partCount/100;
+
+
                 String fileName = file.getFileName().toString();
                 int readBuffer;
                 byte[] buffer = new byte[FileUtils.FILE_PART_SIZE];
-                int i =0;
-                FileMessage fileMessage=null;
-                while ((readBuffer = fileInputStream.read(buffer)) !=-1) {
-                    if (i==0) {
+                int i = 0;
+                FileMessage fileMessage = null;
+                while ((readBuffer = fileInputStream.read(buffer)) != -1) {
+                    float v = i * progressPart/100 ;
+                    ctx.writeAndFlush(new Progress(v));
+                    if (i == 0) {
                         fileMessage = new FileMessage(fileName, buffer, FileMessage.StartEndInfoEnum.START);
                     } else {
                         fileMessage = new FileMessage(fileName, buffer, FileMessage.StartEndInfoEnum.MIDDLE);
@@ -112,6 +117,7 @@ public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
                 }
                 fileMessage = new FileMessage(fileName, new byte[0], FileMessage.StartEndInfoEnum.END);
                 ctx.writeAndFlush(fileMessage);
+                ctx.writeAndFlush(new Progress(0));
 
 
             } catch (IOException e) {
