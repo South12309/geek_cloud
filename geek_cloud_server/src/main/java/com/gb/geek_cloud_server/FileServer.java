@@ -1,7 +1,7 @@
-package com.gb.geek_cloud_server.netty;
+package com.gb.geek_cloud_server;
 
 
-import com.gb.geek_cloud_server.netty.serial.FileHandler;
+import com.gb.geek_cloud_server.FileHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;

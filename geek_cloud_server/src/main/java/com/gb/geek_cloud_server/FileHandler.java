@@ -1,129 +1,140 @@
 package com.gb.geek_cloud_server;
 
-import java.io.*;
-import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import com.gb.common_source.FileUtils;
+import com.gb.common_source.model.*;
+import com.gb.common_source.model.auth.AuthRequest;
+import com.gb.common_source.model.file.*;
+import com.gb.common_source.model.reg.RegRequest;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
+import lombok.extern.slf4j.Slf4j;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
-import static com.gb.common_source.Command.*;
-import static com.gb.common_source.FileUtils.readFileFromStream;
+@Slf4j
+public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
 
-public class FileHandler implements Runnable {
+    private Path rootDir = Path.of("server_files");
+    ;
+    private Path dirUserName;
 
-    // copy past
-    // solution - common module
-    private static final String SERVER_DIR = "server_files";
+    private AuthService authService;
 
-    private static final Integer BATCH_SIZE = 256;
-
-    private final Socket socket;
-
-    private final DataInputStream dis;
-
-    private final DataOutputStream dos;
-    private static final String SEND_FILE_COMMAND = "file";
-    private static final String SEND_FILELIST_COMMAND = "filelist";
-    private static final String GET_FILE_COMMAND = "getfile";
-    private static final Integer BATCH_SIZE = 256;
-    private byte[] batch;
-    private static final String SERVER_DIR = "server_files";
-    private String currentDirectoryServer;
-
-
-    public FileHandler(Socket socket) throws IOException {
-        this.socket = socket;
-        dis = new DataInputStream(socket.getInputStream());
-        dos = new DataOutputStream(socket.getOutputStream());
-        batch = new byte[BATCH_SIZE];
-        File file = new File(SERVER_DIR);
-        if (!file.exists()) {
-            file.mkdir();
-
-        currentDirectoryServer = file.getCanonicalPath();
-        System.out.println("Client accepted..");
-
-    }
-
-    private List<String> getFiles(String directory) {
-        File dir = new File(directory);
-        if (dir.isDirectory()) {
-            String[] list = dir.list();
-            if (list != null) {
-                List<String> files = new ArrayList<>(Arrays.asList(list));
-                files.add(0, "..");
-                return files;
-            }
-        }
-        return List.of();
-    }
-
-    private String getRelativePath(String absolutePath, String rootPath) {
-        return absolutePath.replace(rootPath, "");
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        //  serverDirUserName = rootDir+;
+        dirUserName = rootDir;
+        // ctx.writeAndFlush(new ListMessage(dirUserName));
+        authService = new SQLAuthService();
+        authService.run();
     }
 
     @Override
-    public void run() {
-        try {
-            System.out.println("Start listening...");
-            while (true) {
-                String command = dis.readUTF();
-                if (command.equals(GET_FILE_COMMAND)) {
-                    String fileName = dis.readUTF();
-                    String filePath = currentDirectoryServer + "/" + fileName;
-                    File file = new File(filePath);
-                    if (file.isFile()) {
-                        try {
-                            long size = file.length();
-                            dos.writeLong(size);
-                            try (FileInputStream fis = new FileInputStream(file)) {
-                                byte[] bytes = fis.readAllBytes();
-                                dos.write(bytes);
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        } catch (IOException e) {
-                            System.err.println("e= " + e.getMessage());
-                        }
+    public void channelInactive(ChannelHandlerContext ctx) throws IOException {
+        authService.close();
+    }
 
-                    }
-                }
-                if (command.equals(SEND_FILE_COMMAND)) {
-                    String fileName = dis.readUTF();
-                    long size = dis.readLong();
-                    try (FileOutputStream fos = new FileOutputStream(currentDirectoryServer + "/" + fileName)) {
-                        for (int i = 0; i < (size + BATCH_SIZE - 1) / BATCH_SIZE; i++) {
-                            int read = dis.read(batch);
-                            fos.write(batch, 0, read);
-                        }
-                    } catch (IOException ignored) {
-                    }
-                }
-                if (command.equals(SEND_FILELIST_COMMAND)) {
-                    String directory = dis.readUTF();
-                    File dir = new File(currentDirectoryServer+directory);
-
-                    System.out.println(dir.getCanonicalPath());
-                    if (dir.isDirectory()) {
-                        currentDirectoryServer = dir.getCanonicalPath();
-                    }
-                    List<String> files = getFiles(currentDirectoryServer);
-                    int filesCount = files.size();
-                    dos.writeInt(filesCount);
-                    for (int i = 0; i < filesCount; i++) {
-                        dos.writeUTF(files.get(i));
-                    }
-                //    File serverDir = new File(SERVER_DIR);
-               //     String canonicalPathOfServerDir = serverDir.getCanonicalPath();
-               //     String relativePath = getRelativePath(currentDirectoryServer, canonicalPathOfServerDir);
-               //     dos.writeUTF(relativePath);
-
-                } else {
-                    System.out.println("Unknown command received: " + command);
-                }
+    @Override
+    protected void channelRead0(ChannelHandlerContext ctx, CloudMessage cloudMessage) throws Exception {
+        log.debug("Received: {}", cloudMessage.getType());
+        if (cloudMessage instanceof FileMessage fileMessage) {
+            FileUtils.writeFile(fileMessage, dirUserName);
+            ctx.writeAndFlush(new ListMessage(dirUserName));
+        } else if (cloudMessage instanceof FileRequest fileRequest) {
+            String fileName = fileRequest.getFileName();
+            Path file = dirUserName.resolve(fileName);
+            long size = Files.size(file);
+            if (size > FileUtils.FILE_PART_SIZE) {
+                sendFileToClientByPart(file, ctx);
+            } else {
+                FileMessage fileMessage = new FileMessage(file);
+                ctx.writeAndFlush(fileMessage);
             }
-        } catch (Exception ignored) {
-            System.out.println("Client disconnected...");
+
+        } else if (cloudMessage instanceof DirRequest dirRequest) {
+            Path dir = dirUserName.resolve(dirRequest.getDirectory());
+            if (Files.isDirectory(dir)) {
+                dirUserName = dir;
+                ctx.writeAndFlush(new ListMessage(dir));
+            }
+        } else if (cloudMessage instanceof RenameFile renameFile) {
+            Path file = dirUserName.resolve(renameFile.getFileName());
+            if (!Files.isDirectory(file)) {
+                Files.move(file, file.resolveSibling(renameFile.getNewFileName()));
+                ctx.writeAndFlush(new ListMessage(dirUserName));
+            }
+
+        } else if (cloudMessage instanceof DeleteFile deleteFile) {
+            Path file = dirUserName.resolve(deleteFile.getFileName());
+            if (!Files.isDirectory(file)) {
+                Files.delete(file);
+                ctx.writeAndFlush(new ListMessage(dirUserName));
+            }
+
+        } else if (cloudMessage instanceof AuthRequest authRequest) {
+            ctx.writeAndFlush(authService.authorization(authRequest));
+            setDirUserName(authService.getDirNameLogin());
+            ctx.writeAndFlush(new ListMessage(dirUserName));
+
+        } else if (cloudMessage instanceof RegRequest regRequest) {
+            ctx.writeAndFlush(authService.registration(regRequest));
+            //  ctx.writeAndFlush(new RegResponse(RegResponseEnum.REG_OK));
+
         }
+
+    }
+
+    private void sendFileToClientByPart(Path file, ChannelHandlerContext ctx) {
+        Thread sendFileThread = new Thread(() -> {
+            Lock lock = new ReentrantLock();
+            lock.lock();
+            try (FileInputStream fileInputStream = new FileInputStream(file.toFile())) {
+                float sizeFile = Files.size(file);
+                float partCount = sizeFile / FileUtils.FILE_PART_SIZE;
+                float progressPart = partCount/100;
+
+
+                String fileName = file.getFileName().toString();
+                int readBuffer;
+                byte[] buffer = new byte[FileUtils.FILE_PART_SIZE];
+                int i = 0;
+                FileMessage fileMessage = null;
+                while ((readBuffer = fileInputStream.read(buffer)) != -1) {
+                    float v = i * progressPart/100 ;
+                    ctx.writeAndFlush(new Progress(v));
+                    if (i == 0) {
+                        fileMessage = new FileMessage(fileName, buffer, FileMessage.StartEndInfoEnum.START);
+                    } else {
+                        fileMessage = new FileMessage(fileName, buffer, FileMessage.StartEndInfoEnum.MIDDLE);
+                    }
+                    ctx.writeAndFlush(fileMessage);
+                    i++;
+
+                }
+                fileMessage = new FileMessage(fileName, new byte[0], FileMessage.StartEndInfoEnum.END);
+                ctx.writeAndFlush(fileMessage);
+                ctx.writeAndFlush(new Progress(0));
+
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                lock.unlock();
+            }
+        });
+        sendFileThread.setDaemon(true);
+        sendFileThread.start();
+    }
+
+    private void setDirUserName(String dirNameLogin) throws IOException {
+        Path tempDir = rootDir.resolve(dirNameLogin);
+        if (!Files.exists(tempDir)) {
+            Files.createDirectories(tempDir);
+        }
+        dirUserName = tempDir;
     }
 }

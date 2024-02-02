@@ -5,5 +5,9 @@ public enum MessageType {
     FILE_REQUEST,
     FILE,
     DIR_REQUEST,
-    AUTH_REQUEST
+    AUTH_RESPONSE,
+    AUTH_REQUEST,
+    REG_REQUEST,
+    REG_RESPONSE,
+    PROGRESS
 }
