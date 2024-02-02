@@ -1,9 +1,6 @@
 package com.gb.geek_cloud_server.netty.serial;
 
-import com.gb.model.CloudMessage;
-import com.gb.model.FileMessage;
-import com.gb.model.FileRequest;
-import com.gb.model.ListMessage;
+import com.gb.common_source.model.*;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +26,16 @@ public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
             Files.write(serverDir.resolve(fileMessage.getFileName()), fileMessage.getBytes());
             ctx.writeAndFlush(new ListMessage(serverDir));
         } else if (cloudMessage instanceof FileRequest fileRequest) {
-            ctx.writeAndFlush(new FileMessage(serverDir.resolve(fileRequest.getFileName())));
+            Path file = serverDir.resolve(fileRequest.getFileName());
+            if (!Files.isDirectory(file)) {
+                ctx.writeAndFlush(new FileMessage(file));
+            }
+        } else if (cloudMessage instanceof DirRequest dirRequest) {
+            Path dir = serverDir.resolve(dirRequest.getDirectory());
+            if (Files.isDirectory(dir)) {
+                serverDir=dir;
+                ctx.writeAndFlush(new ListMessage(dir));
+            }
         }
     }
 }

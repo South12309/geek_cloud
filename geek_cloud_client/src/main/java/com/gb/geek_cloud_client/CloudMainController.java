@@ -1,10 +1,7 @@
 package com.gb.geek_cloud_client;
 
-import com.gb.DaemonThreadFactory;
-import com.gb.model.CloudMessage;
-import com.gb.model.FileMessage;
-import com.gb.model.FileRequest;
-import com.gb.model.ListMessage;
+import com.gb.common_source.DaemonThreadFactory;
+import com.gb.common_source.model.*;
 import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
 import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 import javafx.application.Platform;
@@ -12,6 +9,9 @@ import javafx.event.ActionEvent;
 import javafx.fxml.Initializable;
 import javafx.scene.control.ListView;
 import javafx.scene.input.MouseEvent;
+
+import lombok.extern.slf4j.Slf4j;
+
 
 import java.io.File;
 import java.io.IOException;
@@ -24,6 +24,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.ResourceBundle;
 
+
+@Slf4j
 public class CloudMainController implements Initializable {
     public ListView<String> clientView;
     public ListView<String> serverView;
@@ -141,8 +143,7 @@ public class CloudMainController implements Initializable {
         initNetwork();
         batch = new byte[BATCH_SIZE];
         setCurrentDirectory(System.getProperty("user.home"));
-
-        setCurrentDirectoryOnServer("");
+        fillView(clientView, getFiles(currentDirectory));
         clientView.setOnMouseClicked(event -> onMouseClickOnView(event, clientView, currentDirectory, true));
         serverView.setOnMouseClicked(event -> onMouseClickOnView(event, serverView, "", false));
     }
@@ -150,7 +151,9 @@ public class CloudMainController implements Initializable {
     private void onMouseClickOnView(MouseEvent event, ListView<String> view, String directory, boolean isClient) {
         if (event.getClickCount() == 2) {
             String selected = view.getSelectionModel().getSelectedItem();
-            setDirectory(directory + "/" + selected, isClient);
+            String delimiter = (directory.equals(""))?"":"/";
+            setDirectory(directory +  delimiter + selected, isClient);
+
         }
     }
 
@@ -161,7 +164,6 @@ public class CloudMainController implements Initializable {
             setCurrentDirectoryOnServer(directory);
         }
 
-
     }
 
     private void setCurrentDirectory(String directory) {
@@ -170,6 +172,17 @@ public class CloudMainController implements Initializable {
             currentDirectory = directory;
             fillView(clientView, getFiles(currentDirectory));
         }
+
+    }
+
+    private void setCurrentDirectoryOnServer(String directory) {
+        try {
+            network.getOutputStream().writeObject(new DirRequest(directory));
+            log.debug(directory + " запрошен");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
     private void setCurrentDirectoryOnServer(String directory) {

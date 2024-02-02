@@ -1,4 +1,4 @@
-package com.gb;
+package com.gb.common_source;
 
 import java.io.DataInputStream;
 import java.io.FileOutputStream;
