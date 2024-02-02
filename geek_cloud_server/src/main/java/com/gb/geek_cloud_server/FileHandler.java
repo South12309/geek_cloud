@@ -2,6 +2,9 @@ package com.gb.geek_cloud_server;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import static com.gb.common_source.Command.*;
 import static com.gb.common_source.FileUtils.readFileFromStream;
@@ -19,8 +22,14 @@ public class FileHandler implements Runnable {
     private final DataInputStream dis;
 
     private final DataOutputStream dos;
-
+    private static final String SEND_FILE_COMMAND = "file";
+    private static final String SEND_FILELIST_COMMAND = "filelist";
+    private static final String GET_FILE_COMMAND = "getfile";
+    private static final Integer BATCH_SIZE = 256;
     private byte[] batch;
+    private static final String SERVER_DIR = "server_files";
+    private String currentDirectoryServer;
+
 
     public FileHandler(Socket socket) throws IOException {
         this.socket = socket;
@@ -30,22 +39,27 @@ public class FileHandler implements Runnable {
         File file = new File(SERVER_DIR);
         if (!file.exists()) {
             file.mkdir();
-        }
-        sendServerFiles();
-        System.out.println("Client accepted...");
+
+        currentDirectoryServer = file.getCanonicalPath();
+        System.out.println("Client accepted..");
+
     }
 
-    private void sendServerFiles() throws IOException {
-        File dir = new File(SERVER_DIR);
-        String[] files = dir.list();
-        assert files != null;
-        dos.writeUTF(GET_FILES_LIST_COMMAND.getSimpleName());
-        dos.writeInt(files.length);
-        for (String file : files) {
-            dos.writeUTF(file);
+    private List<String> getFiles(String directory) {
+        File dir = new File(directory);
+        if (dir.isDirectory()) {
+            String[] list = dir.list();
+            if (list != null) {
+                List<String> files = new ArrayList<>(Arrays.asList(list));
+                files.add(0, "..");
+                return files;
+            }
         }
-        dos.flush();
-        System.out.println(files.length + " files sent to client");
+        return List.of();
+    }
+
+    private String getRelativePath(String absolutePath, String rootPath) {
+        return absolutePath.replace(rootPath, "");
     }
 
     @Override
@@ -54,30 +68,56 @@ public class FileHandler implements Runnable {
             System.out.println("Start listening...");
             while (true) {
                 String command = dis.readUTF();
-                System.out.println("Received command: " + command);
-                if (command.equals(SEND_FILE_COMMAND.getSimpleName())) {
-                    readFileFromStream(dis, SERVER_DIR);
-                    sendServerFiles();
-                } else if (GET_FILE_COMMAND.getSimpleName().equals(command)) {
+                if (command.equals(GET_FILE_COMMAND)) {
                     String fileName = dis.readUTF();
-                    String filePath = SERVER_DIR + "/" + fileName;
+                    String filePath = currentDirectoryServer + "/" + fileName;
                     File file = new File(filePath);
                     if (file.isFile()) {
                         try {
-                            System.out.println("File: " + fileName + " sent to server");
-                            dos.writeUTF(SEND_FILE_COMMAND.getSimpleName());
-                            dos.writeUTF(fileName);
-                            dos.writeLong(file.length());
+                            long size = file.length();
+                            dos.writeLong(size);
                             try (FileInputStream fis = new FileInputStream(file)) {
                                 byte[] bytes = fis.readAllBytes();
                                 dos.write(bytes);
                             } catch (IOException e) {
                                 throw new RuntimeException(e);
                             }
-                        } catch (Exception e) {
-                            System.err.println("e = " + e.getMessage());
+                        } catch (IOException e) {
+                            System.err.println("e= " + e.getMessage());
                         }
+
                     }
+                }
+                if (command.equals(SEND_FILE_COMMAND)) {
+                    String fileName = dis.readUTF();
+                    long size = dis.readLong();
+                    try (FileOutputStream fos = new FileOutputStream(currentDirectoryServer + "/" + fileName)) {
+                        for (int i = 0; i < (size + BATCH_SIZE - 1) / BATCH_SIZE; i++) {
+                            int read = dis.read(batch);
+                            fos.write(batch, 0, read);
+                        }
+                    } catch (IOException ignored) {
+                    }
+                }
+                if (command.equals(SEND_FILELIST_COMMAND)) {
+                    String directory = dis.readUTF();
+                    File dir = new File(currentDirectoryServer+directory);
+
+                    System.out.println(dir.getCanonicalPath());
+                    if (dir.isDirectory()) {
+                        currentDirectoryServer = dir.getCanonicalPath();
+                    }
+                    List<String> files = getFiles(currentDirectoryServer);
+                    int filesCount = files.size();
+                    dos.writeInt(filesCount);
+                    for (int i = 0; i < filesCount; i++) {
+                        dos.writeUTF(files.get(i));
+                    }
+                //    File serverDir = new File(SERVER_DIR);
+               //     String canonicalPathOfServerDir = serverDir.getCanonicalPath();
+               //     String relativePath = getRelativePath(currentDirectoryServer, canonicalPathOfServerDir);
+               //     dos.writeUTF(relativePath);
+
                 } else {
                     System.out.println("Unknown command received: " + command);
                 }
