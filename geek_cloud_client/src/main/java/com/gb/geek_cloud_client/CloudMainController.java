@@ -8,6 +8,7 @@ import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.Initializable;
 import javafx.scene.control.ListView;
+import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
 
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,7 @@ import java.net.Socket;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -29,6 +31,8 @@ import java.util.ResourceBundle;
 public class CloudMainController implements Initializable {
     public ListView<String> clientView;
     public ListView<String> serverView;
+    public TextField selectedFileOnClient;
+    public TextField selectedFileOnServer;
     private String currentDirectory;
 
     private Network<ObjectDecoderInputStream, ObjectEncoderOutputStream> network;
@@ -149,11 +153,18 @@ public class CloudMainController implements Initializable {
     }
 
     private void onMouseClickOnView(MouseEvent event, ListView<String> view, String directory, boolean isClient) {
+        String selected = view.getSelectionModel().getSelectedItem();
         if (event.getClickCount() == 2) {
-            String selected = view.getSelectionModel().getSelectedItem();
             String delimiter = (directory.equals(""))?"":"/";
             setDirectory(directory +  delimiter + selected, isClient);
 
+        }
+        if (event.getClickCount()==1) {
+            if (isClient) {
+                selectedFileOnClient.setText(selected);
+            } else {
+                selectedFileOnServer.setText(selected);
+            }
         }
     }
 
@@ -212,5 +223,43 @@ public class CloudMainController implements Initializable {
         return List.of();
     }
 
+    public void reNameOnClient(ActionEvent actionEvent) {
+        Path file = Paths.get(currentDirectory,clientView.getSelectionModel().getSelectedItem());
+        try {
+            if (!Files.isDirectory(file)) {
+                Files.move(file, file.resolveSibling(selectedFileOnClient.getText()));
+                fillView(clientView, getFiles(currentDirectory));
+                selectedFileOnClient.setText("");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void reNameOnServer(ActionEvent actionEvent) throws IOException {
+        String fileName = serverView.getSelectionModel().getSelectedItem();
+        network.getOutputStream().writeObject(new RenameFile(fileName, selectedFileOnServer.getText()));
+        selectedFileOnServer.setText("");
+    }
+
+    public void deleteSelectedFileOnClient(ActionEvent actionEvent) {
+        Path file = Paths.get(currentDirectory,clientView.getSelectionModel().getSelectedItem());
+        try {
+            if (!Files.isDirectory(file)) {
+                Files.delete(file);
+                fillView(clientView, getFiles(currentDirectory));
+                selectedFileOnClient.setText("");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    public void deleteSelectedFileOnServer(ActionEvent actionEvent) throws IOException {
+        String fileName = serverView.getSelectionModel().getSelectedItem();
+        network.getOutputStream().writeObject(new DeleteFile(fileName));
+        selectedFileOnServer.setText("");
+    }
 }
 

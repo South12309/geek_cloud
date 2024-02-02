@@ -6,8 +6,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static com.gb.Command.*;
-import static com.gb.FileUtils.readFileFromStream;
+import static com.gb.common_source.Command.*;
+import static com.gb.common_source.FileUtils.readFileFromStream;
 
 public class FileHandler implements Runnable {
 
