@@ -6,9 +6,21 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static com.gb.Command.*;
+import static com.gb.FileUtils.readFileFromStream;
+
 public class FileHandler implements Runnable {
+
+    // copy past
+    // solution - common module
+    private static final String SERVER_DIR = "server_files";
+
+    private static final Integer BATCH_SIZE = 256;
+
     private final Socket socket;
+
     private final DataInputStream dis;
+
     private final DataOutputStream dos;
     private static final String SEND_FILE_COMMAND = "file";
     private static final String SEND_FILELIST_COMMAND = "filelist";
@@ -18,16 +30,19 @@ public class FileHandler implements Runnable {
     private static final String SERVER_DIR = "server_files";
     private String currentDirectoryServer;
 
+
     public FileHandler(Socket socket) throws IOException {
         this.socket = socket;
         dis = new DataInputStream(socket.getInputStream());
         dos = new DataOutputStream(socket.getOutputStream());
         batch = new byte[BATCH_SIZE];
         File file = new File(SERVER_DIR);
-        if (!file.exists())
+        if (!file.exists()) {
             file.mkdir();
+
         currentDirectoryServer = file.getCanonicalPath();
         System.out.println("Client accepted..");
+
     }
 
     private List<String> getFiles(String directory) {
@@ -50,6 +65,7 @@ public class FileHandler implements Runnable {
     @Override
     public void run() {
         try {
+            System.out.println("Start listening...");
             while (true) {
                 String command = dis.readUTF();
                 if (command.equals(GET_FILE_COMMAND)) {
@@ -101,13 +117,13 @@ public class FileHandler implements Runnable {
                //     String canonicalPathOfServerDir = serverDir.getCanonicalPath();
                //     String relativePath = getRelativePath(currentDirectoryServer, canonicalPathOfServerDir);
                //     dos.writeUTF(relativePath);
+
                 } else {
-                    System.out.println("Unknown command received" + command);
+                    System.out.println("Unknown command received: " + command);
                 }
             }
         } catch (Exception ignored) {
             System.out.println("Client disconnected...");
         }
-
     }
 }

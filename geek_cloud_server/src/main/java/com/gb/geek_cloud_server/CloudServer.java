@@ -1,29 +1,28 @@
 package com.gb.geek_cloud_server;
 
+import com.gb.DaemonThreadFactory;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.concurrent.ThreadFactory;
 
 public class CloudServer {
-    public static void main(String[] args) {
-        ThreadFactory serviceThreadFactory = new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                Thread thread = new Thread(r);
-                thread.setName("file-handler-thread-%");
-                thread.setDaemon(true);
-                return thread;
-            }
-        };
-        try (ServerSocket serverSocket = new ServerSocket(8189)) {
+
+    public static void main(String[] args){
+
+        DaemonThreadFactory serviceThreadFactory = new DaemonThreadFactory();
+
+        try(ServerSocket serverSocket = new ServerSocket(8189)) {
             while (true) {
                 Socket socket = serverSocket.accept();
-                serviceThreadFactory.newThread(new FileHandler(socket)).start();
+                serviceThreadFactory.getThread(
+                        new FileHandler(socket),
+                        "file-handler-thread"
+                ).start();
             }
-
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
+
 }
