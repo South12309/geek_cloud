@@ -13,7 +13,9 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
+
 import lombok.extern.slf4j.Slf4j;
+
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -46,7 +48,16 @@ public class CloudMainController implements Initializable {
 
     private Socket socket;
 
-    private boolean needReadMessages = true;
+    private static final String SEND_FILE_COMMAND = "file";
+    private static final String GET_FILE_COMMAND = "getfile";
+    private static final String GET_FILELIST_COMMAND = "filelist";
+    private static final Integer BATCH_SIZE = 256;
+    private byte[] batch;
+
+    private String currentDirectory;
+    //  private String currentDirectoryServer;
+
+
 
 
     public void downloadFile(ActionEvent actionEvent) throws IOException {
@@ -116,13 +127,60 @@ public class CloudMainController implements Initializable {
                     Platform.runLater(() -> fillView(serverView, listMessage.getFiles()));
                 } else if (message instanceof Progress progress) {
                     progressBar.setProgress(progress.getProgress());
+
                 }
+            } catch (IOException e) {
+                System.err.println("e= " + e.getMessage());
+
+
             }
         } catch (Exception e) {
             System.err.println("Server off");
             e.printStackTrace();
         }
     }
+
+    public void getFromServer(ActionEvent actionEvent) {
+        String fileName = serverView.getSelectionModel().getSelectedItem();
+        String filePath = currentDirectory + "/" + fileName;
+        File file = new File(filePath);
+        try {
+            dos.writeUTF(GET_FILE_COMMAND);
+            dos.writeUTF(fileName);
+            long size = dis.readLong();
+            try (FileOutputStream fos = new FileOutputStream(file)) {
+                for (int i = 0; i < (size + BATCH_SIZE - 1) / BATCH_SIZE; i++) {
+                    int read = dis.read(batch);
+                    fos.write(batch, 0, read);
+                }
+            } catch (IOException ignored) {
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        fillView(clientView, getFiles(currentDirectory));
+
+    }
+
+    private List<String> getFilesFromServer(String currentDirectoryServer) {
+        List<String> files = new ArrayList<>();
+        try {
+            dos.writeUTF(GET_FILELIST_COMMAND);
+            dos.writeUTF(currentDirectoryServer);
+            int countFiles = dis.readInt();
+            for (int i = 0; i < countFiles; i++) {
+                files.add(dis.readUTF());
+            }
+            //       this.currentDirectoryServer = dis.readUTF();
+            return files;
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return List.of();
+    }
+
 
     private void initNetwork() {
         network = Network.getInstance();
@@ -135,6 +193,7 @@ public class CloudMainController implements Initializable {
     public void initialize(URL url, ResourceBundle resourceBundle) {
         needReadMessages = true;
         initNetwork();
+        batch = new byte[BATCH_SIZE];
         setCurrentDirectory(System.getProperty("user.home"));
         fillView(clientView, getFiles(currentDirectory));
         clientView.setOnMouseClicked(event -> onMouseClickOnView(event, clientView, currentDirectory, true));
@@ -146,6 +205,7 @@ public class CloudMainController implements Initializable {
         if (event.getClickCount() == 2) {
             String delimiter = (directory.equals("")) ? "" : "/";
             setDirectory(directory + delimiter + selected, isClient);
+
         }
         if (event.getClickCount() == 1) {
             if (isClient) {
@@ -162,6 +222,7 @@ public class CloudMainController implements Initializable {
         } else {
             setCurrentDirectoryOnServer(directory);
         }
+
     }
 
     private void setCurrentDirectory(String directory) {
@@ -170,6 +231,7 @@ public class CloudMainController implements Initializable {
             currentDirectory = directory;
             fillView(clientView, getFiles(currentDirectory));
         }
+
     }
 
     private void setCurrentDirectoryOnServer(String directory) {
@@ -179,7 +241,15 @@ public class CloudMainController implements Initializable {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
     }
+
+    private void setCurrentDirectoryOnServer(String directory) {
+//        currentDirectoryServer = directory;
+        fillView(serverView, getFilesFromServer(directory));
+
+    }
+
 
     private void fillView(ListView<String> view, List<String> data) {
         view.getItems().clear();
@@ -239,6 +309,5 @@ public class CloudMainController implements Initializable {
         network.getOutputStream().writeObject(new DeleteFile(fileName));
         selectedFileOnServer.setText("");
     }
-
-
 }
+

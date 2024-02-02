@@ -8,7 +8,6 @@ import com.gb.common_source.model.reg.RegRequest;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.extern.slf4j.Slf4j;
-
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -114,6 +113,7 @@ public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
                     }
                     ctx.writeAndFlush(fileMessage);
                     i++;
+
                 }
                 fileMessage = new FileMessage(fileName, new byte[0], FileMessage.StartEndInfoEnum.END);
                 ctx.writeAndFlush(fileMessage);
